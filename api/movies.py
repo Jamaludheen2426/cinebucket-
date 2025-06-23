@@ -40,7 +40,7 @@ session = requests.Session()
 session.headers.update(HEADERS)
 
 # Base URLs
-BASE_URL = "https://a.mkvking.homes/"
+BASE_URL = "https://mkvking.autos/"
 AJAX_URL = f"{BASE_URL}wp-admin/admin-ajax.php"
 
 def clean_movie_name(name):
