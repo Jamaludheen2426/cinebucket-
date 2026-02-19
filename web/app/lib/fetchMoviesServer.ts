@@ -1,6 +1,56 @@
 import pool from "./db";
 import { Movies, MovieDetails } from "../types/movie";
 
+/**
+ * Helper to fetch and attach genres to a list of movies.
+ * This mimics the API logic where genres are fetched for each movie.
+ * Uses a single IN query for efficiency.
+ */
+async function enrichMoviesWithGenres(movies: MovieDetails[]): Promise<MovieDetails[]> {
+    if (!movies || movies.length === 0) return movies;
+
+    // Extract IDs. If any ID is missing, skip it.
+    const movieIds = movies.map(m => m.id).filter(id => id != null);
+    if (movieIds.length === 0) return movies;
+
+    try {
+        // Query genres for these movies
+        const [rows]: any = await pool.query(
+            `SELECT mg.movie_id, g.name 
+             FROM genres g 
+             JOIN movie_genres mg ON g.id = mg.genre_id 
+             WHERE mg.movie_id IN (?)`,
+            [movieIds]
+        );
+
+        // Group genres by movie_id
+        const genreMap: Record<string, string[]> = {};
+
+        // Initialize map for all movies to ensure empty array if no genres found
+        movies.forEach(m => {
+            genreMap[String(m.id)] = [];
+        });
+
+        rows.forEach((row: any) => {
+            const mId = String(row.movie_id);
+            if (genreMap[mId]) {
+                genreMap[mId].push(row.name);
+            }
+        });
+
+        // Assign genres back to movie objects
+        // We modify the objects in place or return new ones. In-place is fine here.
+        movies.forEach(m => {
+            m.genre = genreMap[String(m.id)] || [];
+        });
+
+    } catch (error) {
+        console.error("Error fetching genres for movies:", error);
+        // On error, return movies as-is (genres will be undefined or empty)
+    }
+    return movies;
+}
+
 export async function fetchMoviesServer(startFrom: number = 0, limit: number = 20): Promise<{ movies: Movies, total: number }> {
     try {
         const [rows]: any = await pool.query(
@@ -11,7 +61,9 @@ export async function fetchMoviesServer(startFrom: number = 0, limit: number = 2
         const [countRows]: any = await pool.query('SELECT COUNT(*) as total FROM movies');
         const total = countRows[0]?.total || 0;
 
-        return { movies: rows as Movies, total };
+        const moviesWithGenres = await enrichMoviesWithGenres(rows as MovieDetails[]);
+
+        return { movies: moviesWithGenres, total };
     } catch (error) {
         console.error("Database Error fetchMoviesServer:", error);
         return { movies: [], total: 0 };
@@ -59,7 +111,7 @@ export async function fetchMoviesByFiltersServer(
             countQuery += whereClause;
         }
 
-        // Get total count first (using same params)
+        // Get total count first
         const [countRows]: any = await pool.query(countQuery, params);
         const total = countRows[0]?.total || 0;
 
@@ -69,7 +121,9 @@ export async function fetchMoviesByFiltersServer(
 
         const [rows]: any = await pool.query(query, params);
 
-        return { movies: rows as Movies, total };
+        const moviesWithGenres = await enrichMoviesWithGenres(rows as MovieDetails[]);
+
+        return { movies: moviesWithGenres, total };
     } catch (error) {
         console.error("Database Error fetchMoviesByFiltersServer:", error);
         return { movies: [], total: 0 };
