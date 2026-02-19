@@ -12,7 +12,7 @@ const pool = process.env.DB_HOST
             rejectUnauthorized: false
         },
         waitForConnections: true,
-        connectionLimit: 10,
+        connectionLimit: 2,
         queueLimit: 0
     })
     : {
