@@ -3,40 +3,22 @@ import { Suspense } from 'react';
 
 import Home from "@/app/components/Home";
 import { Movies } from "./types/movie";
-import fetchAllMovies from "./lib/fetchAllMovies";
-import fetchMoviesByFilters from "./lib/fetchMoviesByFilters";
+import { fetchMoviesServer, fetchMoviesByFiltersServer } from "./lib/fetchMoviesServer"; // Use Server fetching
 import HomePageSkeleton from './components/skeletons/HomePageSkeleton';
 import { MovieDetails } from './types/movie';
 
 async function PageContent() {
 
-  const extractMovies = (response: any) => {
-    if (!response) return [];
-    if (response.data) {
-      return Array.isArray(response.data) ? response.data : [response.data];
-    }
-    if (Array.isArray(response)) {
-      return response;
-    }
-    if (typeof response === 'object') {
-      for (const key in response) {
-        if (Array.isArray(response[key])) {
-          return response[key];
-        }
-      }
-    }
-    return [];
-  };
-
   let allMovies: Movies = [];
-  let allMoviesResponse: any = { total: 0 };
+  let totalMatches = 0;
 
   try {
-    allMoviesResponse = await fetchAllMovies(0, 20);
-    allMovies = extractMovies(allMoviesResponse);
+    // Direct DB call - no HTTP fetch needed!
+    const response = await fetchMoviesServer(0, 20);
+    allMovies = response.movies;
+    totalMatches = response.total;
   } catch (error) {
     console.error("Critical Error fetching homepage movies:", error);
-    // Don't crash the page, just allow it to render empty so user sees something
   }
 
   const categoryMovies: Record<string, any> = {};
@@ -55,9 +37,9 @@ async function PageContent() {
 
   const categoryPromises = categoriesToFetch.map(async (cat) => {
     try {
-      const response = await fetchMoviesByFilters(0, cat.limit, cat.year, cat.genre, cat.tag);
-      const movies = extractMovies(response);
-      return { title: cat.title, movies: movies || [] };
+      // Direct DB call
+      const response = await fetchMoviesByFiltersServer(0, cat.limit, cat.year, cat.genre, cat.tag);
+      return { title: cat.title, movies: response.movies || [] };
     } catch (error) {
       console.error(`Error fetching ${cat.title}:`, error);
       return { title: cat.title, movies: [] };
@@ -69,15 +51,12 @@ async function PageContent() {
     categoryMovies[catResult.title] = catResult.movies;
   });
 
-
-  const featuredMovieData = allMovies && allMovies.length > 0 ? allMovies[0] : null;
-
   return (
     <>
       <Home
         movies={allMovies}
         categoryMovies={categoryMovies}
-        totalMovies={allMoviesResponse.total}
+        totalMovies={totalMatches}
       />
     </>
   );
