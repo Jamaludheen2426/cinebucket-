@@ -28,8 +28,16 @@ async function PageContent() {
     return [];
   };
 
-  const allMoviesResponse = await fetchAllMovies(0, 20);
-  const allMovies: Movies = extractMovies(allMoviesResponse);
+  let allMovies: Movies = [];
+  let allMoviesResponse: any = { total: 0 };
+
+  try {
+    allMoviesResponse = await fetchAllMovies(0, 20);
+    allMovies = extractMovies(allMoviesResponse);
+  } catch (error) {
+    console.error("Critical Error fetching homepage movies:", error);
+    // Don't crash the page, just allow it to render empty so user sees something
+  }
 
   const categoryMovies: Record<string, any> = {};
 
@@ -49,12 +57,7 @@ async function PageContent() {
     try {
       const response = await fetchMoviesByFilters(0, cat.limit, cat.year, cat.genre, cat.tag);
       const movies = extractMovies(response);
-      if (movies && movies.length > 0) {
-        return { title: cat.title, movies };
-      } else {
-        console.warn(`No valid movies found for ${cat.title}`);
-        return { title: cat.title, movies: [] };
-      }
+      return { title: cat.title, movies: movies || [] };
     } catch (error) {
       console.error(`Error fetching ${cat.title}:`, error);
       return { title: cat.title, movies: [] };
