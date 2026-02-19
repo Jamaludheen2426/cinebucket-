@@ -9,7 +9,7 @@ export async function GET(request: Request) {
         const start = parseInt(searchParams.get('start') || '0');
 
         const [rows]: any = await pool.query(
-            'SELECT * FROM movies ORDER BY release_date DESC LIMIT ? OFFSET ?',
+            "SELECT * FROM movies WHERE name IS NOT NULL AND name != '' ORDER BY release_date DESC LIMIT ? OFFSET ?",
             [limit, start]
         );
 

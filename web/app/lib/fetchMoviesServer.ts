@@ -54,11 +54,11 @@ async function enrichMoviesWithGenres(movies: MovieDetails[]): Promise<MovieDeta
 export async function fetchMoviesServer(startFrom: number = 0, limit: number = 20): Promise<{ movies: Movies, total: number }> {
     try {
         const [rows]: any = await pool.query(
-            `SELECT * FROM movies ORDER BY id DESC LIMIT ? OFFSET ?`,
+            `SELECT * FROM movies WHERE name IS NOT NULL AND name != '' ORDER BY id DESC LIMIT ? OFFSET ?`,
             [limit, startFrom]
         );
 
-        const [countRows]: any = await pool.query('SELECT COUNT(*) as total FROM movies');
+        const [countRows]: any = await pool.query('SELECT COUNT(*) as total FROM movies WHERE name IS NOT NULL AND name != \'\'');
         const total = countRows[0]?.total || 0;
 
         const moviesWithGenres = await enrichMoviesWithGenres(rows as MovieDetails[]);
@@ -79,6 +79,7 @@ export async function fetchMoviesByFiltersServer(
 ): Promise<{ movies: Movies, total: number }> {
     try {
         let query = 'SELECT DISTINCT m.* FROM movies m';
+        const baseCondition = "m.name IS NOT NULL AND m.name != ''";
         let countQuery = 'SELECT COUNT(DISTINCT m.id) as total FROM movies m';
 
         const params: any[] = [];
@@ -104,6 +105,9 @@ export async function fetchMoviesByFiltersServer(
             conditions.push('m.year = ?');
             params.push(year);
         }
+
+        // Always add base condition to skip empty rows
+        conditions.unshift(baseCondition);
 
         if (conditions.length > 0) {
             const whereClause = ' WHERE ' + conditions.join(' AND ');
