@@ -1,8 +1,7 @@
 export const dynamic = 'force-dynamic';
 import { NextRequest, NextResponse } from 'next/server';
-import fetchAllMovies from '@/app/lib/fetchAllMovies';
-import fetchMoviesByFilters from '@/app/lib/fetchMoviesByFilters';
-import { MovieDetails, Movies } from '@/app/types/movie';
+import { fetchMoviesByFiltersForCategory, fetchMoviesBySearchServer } from '@/app/lib/fetchMoviesServer';
+import { MovieDetails } from '@/app/types/movie';
 
 const ITEMS_PER_PAGE = 20;
 
@@ -10,53 +9,25 @@ function calculateRelevanceScore(movie: MovieDetails, query: string): number {
   const normalizedQuery = query.toLowerCase().trim();
   const movieName = (movie.name || '').toLowerCase();
 
-  if (movieName === normalizedQuery) {
-    return 100;
-  }
-
-
-  if (movieName.startsWith(normalizedQuery)) {
-    return 90;
-  }
-
+  if (movieName === normalizedQuery) return 100;
+  if (movieName.startsWith(normalizedQuery)) return 90;
 
   const titleWords = movieName.split(/\s+/);
-  if (titleWords.includes(normalizedQuery)) {
-    return 80;
-  }
+  if (titleWords.includes(normalizedQuery)) return 80;
 
-
-  if (movieName.includes(normalizedQuery)) {
-    return 70;
-  }
-
+  if (movieName.includes(normalizedQuery)) return 70;
 
   const movieDesc = (movie.description || '').toLowerCase();
-  if (movieDesc.includes(normalizedQuery)) {
-    return 50;
-  }
+  if (movieDesc.includes(normalizedQuery)) return 50;
 
+  const genres = Array.isArray(movie.genre) ? movie.genre.map(g => g.toLowerCase()) : [];
+  if (genres.some(g => g === normalizedQuery)) return 30;
 
-  const tags = Array.isArray(movie.tags) ? movie.tags.map(tag => tag.toLowerCase()) : [];
-  const genres = Array.isArray(movie.genre) ? movie.genre.map(genre => genre.toLowerCase()) : [];
-
-  if (tags.some(tag => tag === normalizedQuery)) {
-    return 40;
-  }
-
-  if (genres.some(genre => genre === normalizedQuery)) {
-    return 30;
-  }
-
-  if (tags.some(tag => tag.includes(normalizedQuery)) || genres.some(genre => genre.includes(normalizedQuery))) {
-    return 20;
-  }
-
+  // Tags are not currently fetched in list view, so we skip tag scoring for now
+  // unless we update fetchMoviesServer to include tags.
 
   const words = normalizedQuery.split(/\s+/);
-  if (words.some(word => word.length > 3 && movieName.includes(word))) {
-    return 10;
-  }
+  if (words.some(word => word.length > 3 && movieName.includes(word))) return 10;
 
   return 0;
 }
@@ -74,13 +45,12 @@ export async function GET(request: NextRequest) {
     const year = yearParam ? parseInt(yearParam, 10) : undefined;
     const startFrom = (page - 1) * ITEMS_PER_PAGE;
 
-    console.log(`[API] Request: query="${query}", genre="${genre}", year="${year}", tag="${tag}", page=${page}`);
-
+    // 1. Handle Filter-based Search (Genre, Year, Tag)
     if (genre || year || tag) {
-      const effectiveGenre = genre ? genre : undefined;
-      const effectiveTag = tag ? tag : undefined;
-      console.log(`[API] Fetching with filters: genre=${effectiveGenre}, year=${year}, tag=${effectiveTag}, startFrom=${startFrom}, limit=${ITEMS_PER_PAGE}`);
-      const filteredResponse = await fetchMoviesByFilters(startFrom, ITEMS_PER_PAGE, year, effectiveGenre, effectiveTag);
+      const effectiveGenre = genre || undefined;
+      const effectiveTag = tag || undefined;
+
+      const filteredResponse = await fetchMoviesByFiltersForCategory(startFrom, ITEMS_PER_PAGE, year, effectiveGenre, effectiveTag);
 
       return NextResponse.json({
         results: filteredResponse.data,
@@ -88,28 +58,32 @@ export async function GET(request: NextRequest) {
         page: page,
         totalPages: Math.ceil(filteredResponse.total / ITEMS_PER_PAGE)
       });
-    } else if (query.trim()) {
-      console.log(`[API] Fetching with query: "${query}"`);
-      const allMoviesForQuery = await fetchAllMovies(0, 1000, query);
+    }
 
-      if (Array.isArray(allMoviesForQuery)) {
+    // 2. Handle Text-based Search
+    else if (query.trim()) {
+      // Fetch pure DB results
+      const allMovies = await fetchMoviesBySearchServer(query, 500); // Limit 500 for performance
+
+      if (allMovies && allMovies.length > 0) {
         const normalizedQuery = query.toLowerCase().trim();
-        console.log(`[API] Ranking ${allMoviesForQuery.length} results for: "${normalizedQuery}"`);
 
-        const scoredMovies = allMoviesForQuery.map((movie: MovieDetails) => {
-          const score = calculateRelevanceScore(movie, normalizedQuery);
-          return { movie, score };
-        });
+        // Score results
+        const scoredMovies = allMovies.map((movie: MovieDetails) => ({
+          movie,
+          score: calculateRelevanceScore(movie, normalizedQuery)
+        }));
 
-        const relevantMovies = scoredMovies.filter(item => item.score > 0);
-        console.log(`[API] Found ${relevantMovies.length} relevant matches after scoring`);
+        // Filter and Sort
+        const relevantMovies = scoredMovies
+          .filter(item => item.score > 0)
+          .sort((a, b) => b.score - a.score);
 
-        relevantMovies.sort((a, b) => b.score - a.score);
+        const results = relevantMovies.map(item => item.movie);
 
-        const sortedResults = relevantMovies.map(item => item.movie);
         return NextResponse.json({
-          results: sortedResults,
-          total: sortedResults.length,
+          results: results,
+          total: results.length,
           page: 1,
           totalPages: 1
         });
@@ -117,12 +91,11 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ results: [], total: 0, page: 1, totalPages: 1 });
     }
 
-    console.log("[API] No query or filters provided.");
     return NextResponse.json({ results: [], total: 0, page: 1, totalPages: 1 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('[API] Search error:', error);
     return NextResponse.json(
-      { error: 'Failed to fetch movies', message: error instanceof Error ? error.message : String(error) },
+      { error: 'Failed to fetch movies', message: error.message },
       { status: 500 }
     );
   }

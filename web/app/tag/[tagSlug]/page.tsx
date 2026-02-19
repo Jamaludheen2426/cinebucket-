@@ -2,7 +2,7 @@ import React, { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import MainWrapper from '@/app/components/MainWrapper';
 import HomeMoviesList from '@/app/components/HomeMoviesList';
-import fetchMoviesByFilters from '@/app/lib/fetchMoviesByFilters';
+import { fetchMoviesByFiltersForCategory } from '@/app/lib/fetchMoviesServer';
 import { Movies } from '@/app/types/movie';
 import SingleCategoryPageSkeleton from '@/app/components/skeletons/SingleCategoryPageSkeleton'; // Re-use skeleton
 import PaginationComponent from '@/app/components/PaginationComponent';
@@ -17,23 +17,23 @@ const deSlugifyTag = (slug: string): string => {
 };
 
 async function TagMoviesList({ tagSlug, currentPage }: { tagSlug: string, currentPage: number }) {
-  const tagNameForFilter = deSlugifyTag(tagSlug); 
+  const tagNameForFilter = deSlugifyTag(tagSlug);
   const startFrom = (currentPage - 1) * ITEMS_PER_PAGE;
 
-  const response = await fetchMoviesByFilters(
+  const response = await fetchMoviesByFiltersForCategory(
     startFrom,
     ITEMS_PER_PAGE,
-    undefined, 
-    undefined, 
-    tagNameForFilter 
+    undefined,
+    undefined,
+    tagNameForFilter
   );
-  
+
   const movies = response.data as Movies || [];
-  const totalResultsInBatch = response.total || 0; 
+  const totalResultsInBatch = response.total || 0;
   const totalPages = Math.max(1, Math.ceil(totalResultsInBatch / ITEMS_PER_PAGE));
 
   if (movies.length === 0 && currentPage === 1) {
-     return <p className="text-center text-slate-400 mt-10">No movies found for tag "{tagNameForFilter}".</p>;
+    return <p className="text-center text-slate-400 mt-10">No movies found for tag "{tagNameForFilter}".</p>;
   }
 
   return (
@@ -43,13 +43,13 @@ async function TagMoviesList({ tagSlug, currentPage }: { tagSlug: string, curren
         px="px-0"
       />
       {totalPages > 1 && (
-         <div className="mt-12 flex justify-center">
-            <PaginationComponent
-                currentPage={currentPage}
-                totalPages={totalPages}
-                basePath={`/tag/${tagSlug}`} 
-            />
-         </div>
+        <div className="mt-12 flex justify-center">
+          <PaginationComponent
+            currentPage={currentPage}
+            totalPages={totalPages}
+            basePath={`/tag/${tagSlug}`}
+          />
+        </div>
       )}
     </>
   );

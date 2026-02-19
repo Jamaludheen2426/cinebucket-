@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import fetchMoviesByFilters from '@/app/lib/fetchMoviesByFilters';
+import { fetchMoviesByFiltersForCategory } from '@/app/lib/fetchMoviesServer';
 import HomeMoviesList from "@/app/components/HomeMoviesList";
 import MainWrapper from "@/app/components/MainWrapper";
 import { defaultCategories } from '@/app/lib/fetchMoviesByCategory';
@@ -16,14 +16,14 @@ const generateSlug = (title: string) => {
 
 async function CategoryMoviesList({ slug, currentPage }: { slug: string, currentPage: number }) {
   const originalCategory = defaultCategories.find(cat => generateSlug(cat.title) === slug);
-  
+
   if (!originalCategory) {
     return <p className="text-center text-slate-400 mt-10">Category not found.</p>;
   }
 
   const startFrom = (currentPage - 1) * ITEMS_PER_PAGE;
-  
-  const response = await fetchMoviesByFilters(
+
+  const response = await fetchMoviesByFiltersForCategory(
     startFrom,
     ITEMS_PER_PAGE,
     originalCategory.year,
@@ -43,14 +43,14 @@ async function CategoryMoviesList({ slug, currentPage }: { slug: string, current
     <>
       <HomeMoviesList
         movies={movies}
-        px="px-0" 
+        px="px-0"
       />
       {totalPages > 1 && (
         <div className="mt-12 flex justify-center">
           <PaginationComponent
             currentPage={currentPage}
             totalPages={totalPages}
-            basePath={`/category/${slug}/page`} 
+            basePath={`/category/${slug}/page`}
           />
         </div>
       )}
@@ -61,9 +61,9 @@ async function CategoryMoviesList({ slug, currentPage }: { slug: string, current
 export default async function CategoryMovieListPage({
   params
 }: {
-  params:Promise< { slug: string, page: string }>;
+  params: Promise<{ slug: string, page: string }>;
 }) {
-      const resolvedParams = await params;
+  const resolvedParams = await params;
   const { slug, page: pageParam } = resolvedParams;
   const pageNum = parseInt(pageParam);
 
@@ -72,7 +72,7 @@ export default async function CategoryMovieListPage({
   }
 
   const originalCategory = defaultCategories.find(cat => generateSlug(cat.title) === slug);
-  
+
   if (!originalCategory) {
     notFound();
   }

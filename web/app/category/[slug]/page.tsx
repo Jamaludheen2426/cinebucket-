@@ -1,13 +1,15 @@
-import React, { Suspense } from 'react';
+export const dynamic = 'force-dynamic';
+import React from 'react';
 import { notFound } from 'next/navigation';
 import MainWrapper from '@/app/components/MainWrapper';
 import HomeMoviesList from '@/app/components/HomeMoviesList';
-import fetchMoviesByFilters from '@/app/lib/fetchMoviesByFilters';
+import { fetchMoviesByFiltersForCategory } from '@/app/lib/fetchMoviesServer';
 import { Movies } from '@/app/types/movie';
 import { defaultCategories } from '@/app/lib/fetchMoviesByCategory';
 import PaginationComponent from '@/app/components/PaginationComponent';
 
 const ITEMS_PER_PAGE = 20;
+
 const generateSlug = (title: string) => {
   return title.toLowerCase().replace(/\s+/g, '-').replace(/[^\w-]+/g, '');
 };
@@ -31,7 +33,7 @@ export default async function CategoryPage({
     notFound();
   }
 
-  const response = await fetchMoviesByFilters(
+  const response = await fetchMoviesByFiltersForCategory(
     startFrom,
     ITEMS_PER_PAGE,
     originalCategory.year,
@@ -52,7 +54,7 @@ export default async function CategoryPage({
               {originalCategory.title}
             </h1>
             <p className="text-center text-slate-400 mt-10">
-              No movies found for "{originalCategory.title}".
+              No movies found for &quot;{originalCategory.title}&quot;.
             </p>
           </div>
         </MainWrapper>
@@ -68,12 +70,9 @@ export default async function CategoryPage({
             {originalCategory.title}
           </h1>
           <p className="text-slate-400 text-center mb-10">
-            Browse movies in the "{originalCategory.title}" category
+            Browse movies in the &quot;{originalCategory.title}&quot; category
           </p>
-          <HomeMoviesList
-            movies={movies}
-            px="px-0"
-          />
+          <HomeMoviesList movies={movies} px="px-0" />
           {totalPages > 1 && (
             <div className="mt-12 flex justify-center">
               <PaginationComponent
