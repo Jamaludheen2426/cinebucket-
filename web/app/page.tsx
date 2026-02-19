@@ -1,4 +1,6 @@
+export const dynamic = 'force-dynamic';
 import { Suspense } from 'react';
+
 import Home from "@/app/components/Home";
 import { Movies } from "./types/movie";
 import fetchAllMovies from "./lib/fetchAllMovies";

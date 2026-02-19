@@ -8,8 +8,17 @@ interface FetchApiOptions {
   queryParams?: Record<string, string | number>;
 }
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
-const API_KEY = process.env.API_KEY || "";
+function getBaseUrl() {
+  // In the browser, use relative URLs (empty string)
+  if (typeof window !== 'undefined') return '';
+  // On the server at Vercel, use VERCEL_URL which is always set
+  if (process.env.VERCEL_URL) return `https://${process.env.VERCEL_URL}`;
+  // Local dev fallback
+  return process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3000';
+}
+
+const API_KEY = process.env.API_KEY || '';
+
 
 export async function fetchApi<T = any>({
   method = "GET",
@@ -18,7 +27,7 @@ export async function fetchApi<T = any>({
   headers = {},
   queryParams,
 }: FetchApiOptions): Promise<T> {
-  let url = `${BASE_URL}${endpoint}`;
+  let url = `${getBaseUrl()}${endpoint}`;
 
   if (queryParams) {
     const searchParams = new URLSearchParams(

@@ -50,8 +50,8 @@ const HomeMoviesList: React.FC<HomeMoviesListProps> = ({
                         </div>
                       )}
                       <p className="text-xs text-gray-300">{_movie.year}</p>
-                      {_movie.genres && _movie.genres.length > 0 && (
-                        <p className="text-xs text-gray-400 mt-1">{_movie.genres[0]}</p>
+                      {_movie.genre && _movie.genre.length > 0 && (
+                        <p className="text-xs text-gray-400 mt-1">{_movie.genre[0]}</p>
                       )}
                     </div>
                   </div>
