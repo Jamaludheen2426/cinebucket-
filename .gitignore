@@ -24,8 +24,6 @@ env/
 venv/
 .env/
 bin/
-lib/
-include/
 pypy/
 pip-log.txt
 pip-delete-this-directory.txt
