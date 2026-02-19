@@ -12,7 +12,7 @@ export default async function handler(req, res) {
 
         for (let page = 1; page <= totalPages; page++) {
             try {
-                const response = await fetch('https://mkvking-scraper.vercel.app/api/movies', {
+                const response = await fetch('https://cinebucket-api.vercel.app/api/movies', {
                     method: 'POST',
                     headers: { 
                         'Content-Type': 'application/json',

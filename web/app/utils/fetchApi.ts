@@ -1,0 +1,57 @@
+export type FetchMethod = "GET" | "POST" | "PUT" | "DELETE" | "PATCH";
+
+interface FetchApiOptions {
+  method?: FetchMethod;
+  endpoint: string;
+  body?: any;
+  headers?: Record<string, string>;
+  queryParams?: Record<string, string | number>;
+}
+
+const BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || "";
+const API_KEY = process.env.API_KEY || "";
+
+export async function fetchApi<T = any>({
+  method = "GET",
+  endpoint,
+  body,
+  headers = {},
+  queryParams,
+}: FetchApiOptions): Promise<T> {
+  let url = `${BASE_URL}${endpoint}`;
+
+  if (queryParams) {
+    const searchParams = new URLSearchParams(
+      Object.entries(queryParams).reduce((acc, [key, value]) => {
+        acc[key] = String(value);
+        return acc;
+      }, {} as Record<string, string>)
+    ).toString();
+    url += `?${searchParams}`;
+  }
+
+  const isJson =
+    headers["Content-Type"] === "application/json" || !headers["Content-Type"];
+
+  const response = await fetch(url, {
+    method,
+    headers: {
+      "Content-Type": "application/json",
+      "x-api-key": API_KEY,
+      ...headers,
+    },
+    body:
+      body && method !== "GET"
+        ? isJson
+          ? JSON.stringify(body)
+          : body
+        : undefined,
+  });
+
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Error ${response.status}: ${error}`);
+  }
+
+  return response.json();
+}
