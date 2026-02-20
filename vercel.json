@@ -1,0 +1,19 @@
+{
+    "version": 2,
+    "builds": [
+        {
+            "src": "api/**/*.py",
+            "use": "@vercel/python"
+        },
+        {
+            "src": "api/**/*.js",
+            "use": "@vercel/node"
+        }
+    ],
+    "crons": [
+        {
+            "path": "/api/run-cron",
+            "schedule": "0 0 * * *"
+        }
+    ]
+}
