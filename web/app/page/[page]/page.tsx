@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import fetchAllMovies from "@/app/lib/fetchAllMovies";
+import { fetchMoviesServer } from "@/app/lib/fetchMoviesServer";
 import HomeMoviesList from "@/app/components/HomeMoviesList";
 import MainWrapper from "@/app/components/MainWrapper";
 import PaginationComponent from "@/app/components/PaginationComponent";
@@ -17,7 +17,7 @@ export default async function MovieListPage({ params }: Props) {
   const start = (pageNum - 1) * 20;
   const limit = 20;
 
-  const response = await fetchAllMovies(start, limit);
+  const response = await fetchMoviesServer(start, limit);
   const totalPages = Math.ceil((response.total || 0) / 20);
 
   return (
