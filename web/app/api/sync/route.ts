@@ -7,7 +7,7 @@ export async function GET(request: Request) {
         console.log('--- Syncing to cinebucketdev via Scraper API ---');
 
         // 1. Call Scraper API
-        const scrapeRes = await fetch('https://mkvking-scraper.vercel.app/api/movies', {
+        const scrapeRes = await fetch('https://mkvking-scraper-three.vercel.app/api/movies', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ start: 0, limit: 20 })
