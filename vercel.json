@@ -10,6 +10,16 @@
             "use": "@vercel/node"
         }
     ],
+    "routes": [
+        {
+            "src": "/api/run-cron",
+            "dest": "/api/run-cron.js"
+        },
+        {
+            "src": "/api/(.*)",
+            "dest": "/api/index.py"
+        }
+    ],
     "crons": [
         {
             "path": "/api/run-cron",
